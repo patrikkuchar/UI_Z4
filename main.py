@@ -1,19 +1,48 @@
 import random
-
+import math
 import numpy as np
 from matplotlib import pyplot as plt
 
-def show_points_on_graph(points):
-    plt.title("Selekcia: ")
-    plt.xlabel("Generacie")
-    plt.ylabel("Fitness")
-    #plt.plot(points[0]["x"], points[0]["y"])
-    plt.scatter(points[0]["x"], points[0]["y"])
+def calculate_distance(point_A, point_B):
+    return math.sqrt((point_A["x"] - point_B["x"])**2 + (point_A["y"] - point_B["y"])**2)
 
-    plt.scatter(points[1]["x"], points[1]["y"])
-    plt.scatter(points[3]["x"], points[3]["y"])
-    plt.scatter(points[4]["x"], points[4]["y"])
-    plt.scatter(points[5]["x"], points[5]["y"])
+def kMeans_centroid(Points, k):
+    centroids = []
+    clusters = []
+
+    for i in range(k):
+        centroids.append({"x" : random.randrange(-5000, 5001), "y" : random.randrange(-5000, 5001)})
+        clusters.append([])
+
+    for point in Points:
+        ##vypočet najbližšieho bodu
+        nearest_dist = 10000
+        nearest_index = -1
+
+        for i in range(k):
+            distance = calculate_distance(centroids[i], point)
+            if distance < nearest_dist:
+                nearest_dist = distance
+                nearest_index = i
+
+        clusters[nearest_index].append(point)
+
+    show_points_on_graph(clusters)
+
+
+
+def show_points_on_graph(clusters):
+    plt.title("Názov grafu")
+    #plt.plot(points[0]["x"], points[0]["y"])
+
+    for points in clusters:
+        xPoints = []
+        yPoints = []
+        for point in points:
+            xPoints.append(point["x"])
+            yPoints.append(point["y"])
+        plt.scatter(xPoints, yPoints)
+
     plt.show()
 
 def generate_dots(numOnStart, numOfAll):
@@ -52,8 +81,11 @@ def generate_dots(numOnStart, numOfAll):
         Points.append(new_point)
         length += 1
 
-    show_points_on_graph(Points)
+    show_points_on_graph([Points])
+
+    return Points
 
 
 
-generate_dots(20, 10)
+pointy = generate_dots(20, 20000)
+kMeans_centroid(pointy, 8)
