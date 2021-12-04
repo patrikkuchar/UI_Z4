@@ -23,7 +23,7 @@ def find_medoid(cluster):
     ##vytvorím si zoznam
     lenOfCluster = len(cluster)
 
-    arrayOfSums = np.zeros((lenOfCluster,), dtype=int)
+    arrayOfSums = np.zeros((lenOfCluster,), dtype=float)
 
     for A in range(lenOfCluster-1):
         for B in range(A+1, lenOfCluster):
@@ -336,9 +336,9 @@ def show_points_on_graph(clusters, clustersCentres, label, saveLabel):
             plt.scatter(clustersCentres[i]["x"], clustersCentres[i]["y"], marker="x", color="k")
 
     plt.savefig("grafy/frame" + saveLabel + ".png")
-    plt.figure()
-    plt.clf()
-    #plt.show()
+    #plt.figure()
+    #plt.clf()
+    plt.show()
 
 def generate_dots(numOnStart, numOfAll):
     Points = []
@@ -392,6 +392,6 @@ dots = generate_dots(numberOfClusters, 500)
 centerPoints = create_centres(numberOfClusters)
 #kMeans_centroid(dots, numberOfClusters, centerPoints)
 #kMeans_medoid(dots, numberOfClusters, centerPoints)
-#aglomerative_clustering(dots, len(dots), numberOfClusters)
-divisive_clustering(dots, len(dots), numberOfClusters)
+aglomerative_clustering(dots, len(dots), numberOfClusters)
+#divisive_clustering(dots, len(dots), numberOfClusters)
 
