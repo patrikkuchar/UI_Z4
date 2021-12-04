@@ -6,6 +6,8 @@ from matplotlib import pyplot as plt
 from PIL import Image as img
 
 def create_GIF(numOfIterations, n):
+    return
+
     path = "grafy/frame"
     frames = [img.open(path + "0.png")]
     path += str(n) + "_"
@@ -13,10 +15,15 @@ def create_GIF(numOfIterations, n):
     for i in range(numOfIterations+1):
         frames.append(img.open(path + str(i) + ".png"))
 
+    dur = 750
+    if n == 3:
+        dur = 300
+
+
     frames[0].save('gifko_' + str(n) + '.gif', format='GIF',
                    append_images=frames[1:],
                    save_all=True,
-                   duration=750, loop=10)
+                   duration=dur, loop=10)
 
 
 def find_medoid(cluster):
@@ -106,6 +113,7 @@ def divisive_clustering(Points, n, k):
     numOfPoints = n
     start_time = time.time()
 
+
     show_points_on_graph(clusters, centroids, label + "1", "4_0")
     counter = 0
     while numOfClusters < k:
@@ -151,6 +159,9 @@ def divisive_clustering(Points, n, k):
             if biggest < 6:
                 break
 
+    end_time = time.time()
+    print("Čas vykonávania Divízneho zhlukovania: " + str(round(end_time - start_time, 4)) + "s")
+
     create_GIF(counter, 4)
 
 
@@ -174,14 +185,11 @@ def aglomerative_clustering(Points, n, k):
             matrix[A][B] = distance
             matrix[B][A] = distance
 
-    end_time = time.time()
-    print("trvalo to " + str(end_time-start_time) + " sekúnd")
-    start_time = time.time()
+
 
     show_points_on_graph(clusters, centroids, label + str(numOfClusters), "3_0")
 
-    end_time = time.time()
-    print("trvalo to " + str(end_time-start_time) + " sekúnd")
+
 
     counter = 0
     while numOfClusters > k:
@@ -227,8 +235,10 @@ def aglomerative_clustering(Points, n, k):
 
         show_points_on_graph(clusters, centroids, label + str(numOfClusters), "3_" + str(counter))
     #show_points_on_graph(clusters, centroids, label + str(numOfClusters), "3_" + str(counter))
+    end_time = time.time()
+    print("Čas vykonávania Aglomeratívneho zhlukovania: " + str(round(end_time-start_time, 4)) + "s")
+
     create_GIF(counter, 3)
-    print("hotofko")
 
 
 
@@ -316,8 +326,24 @@ def kMeans_centroid(Points, k, centerPoints):
 
 
 def show_points_on_graph(clusters, clustersCentres, label, saveLabel):
+    return
+
     plt.title(label)
     #plt.plot(points[0]["x"], points[0]["y"])
+
+    colors = ["#e6194B","#3cb44b","#ffe119","#4363d8","#f58231","#911eb4","#42d4f4","#f032e6","#bfef45","#fabed4"
+              ,"#469990","#dcbeff","#9A6324","#fffac8","#800000","#aaffc3","#808000","#ffd8b1","#000075","#a9a9a9"]
+
+    x_os = [[]]
+    y_os = [[]]
+
+    x_centres = []
+    y_centres = []
+
+    centres = True
+    if len(clustersCentres) == 0:
+        centres = False
+
 
     for i, points in enumerate(clusters):
         counter = 0
@@ -327,18 +353,31 @@ def show_points_on_graph(clusters, clustersCentres, label, saveLabel):
             counter += 1
             xPoints.append(point["x"])
             yPoints.append(point["y"])
-        if counter == 1:
-            plt.scatter(xPoints, yPoints, color="k")
-        else:
-            plt.scatter(xPoints, yPoints)
 
-        if counter > 5 and clustersCentres != []:
-            plt.scatter(clustersCentres[i]["x"], clustersCentres[i]["y"], marker="x", color="k")
+        if counter == 1:
+            x_os[0].append(xPoints[0])
+            y_os[0].append(yPoints[0])
+        else:
+            x_os.append(xPoints)
+            y_os.append(yPoints)
+            if centres:
+                x_centres.append(clustersCentres[i]["x"])
+                y_centres.append(clustersCentres[i]["y"])
+
+    for i in range(len(x_os)):
+        if i == 0:
+            plt.scatter(x_os[i], y_os[i], color="k")
+            continue
+        plt.scatter(x_os[i], y_os[i], color=colors[(i-1)%20])
+
+    if centres:
+        plt.scatter(x_centres, y_centres, marker="x", color="k")
+
 
     plt.savefig("grafy/frame" + saveLabel + ".png")
-    #plt.figure()
-    #plt.clf()
-    plt.show()
+    plt.figure()
+    plt.clf()
+    #plt.show()
 
 def generate_dots(numOnStart, numOfAll):
     Points = []
@@ -387,7 +426,7 @@ def create_centres(k):
         points.append({"x" : random.randrange(-5000, 5001), "y" : random.randrange(-5000, 5001)})
     return points
 
-numberOfClusters = 10
+numberOfClusters = 20
 dots = generate_dots(numberOfClusters, 500)
 centerPoints = create_centres(numberOfClusters)
 #kMeans_centroid(dots, numberOfClusters, centerPoints)
