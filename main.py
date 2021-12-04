@@ -1,5 +1,6 @@
 import random
 import math
+import time
 import numpy as np
 from matplotlib import pyplot as plt
 from PIL import Image as img
@@ -18,6 +19,22 @@ def create_GIF(numOfIterations, n):
                    duration=750, loop=10)
 
 
+def find_medoid(cluster):
+    ##vytvorím si zoznam
+    lenOfCluster = len(cluster)
+
+    arrayOfSums = np.zeros((lenOfCluster,), dtype=int)
+
+    for A in range(lenOfCluster-1):
+        for B in range(A+1, lenOfCluster):
+            distance = calculate_distance(cluster[A], cluster[B])
+            arrayOfSums[A] += distance
+            arrayOfSums[B] += distance
+
+
+    index = np.where(arrayOfSums == np.amin(arrayOfSums))[0][0]
+
+    return cluster[index]
 
 
 def points_to_clusters(Points, clustersCentres):
@@ -54,23 +71,151 @@ def calculate_average(Points):
         return None
     return {"x" : sum_x//counter, "y" : sum_y//counter}
 
+def find_biggest_cluster(clusters, centroids, sizes):
+    ##nájde index zhluku, ktorý má najvzdialenejší bod od stredu
+    ##zatiaľ so sizes nepočítam
+
+
+
 
 
 def calculate_distance(point_A, point_B):
     return math.sqrt((point_A["x"] - point_B["x"])**2 + (point_A["y"] - point_B["y"])**2)
 
-def kMeans_centroid(Points, k):
+def divisive_clustering(Points, n, k):
+    label = "Divízne zhlukovanie, kde stred je centroid; počet zhlukov: "
+    clusters = [Points]
+    centroids = calculate_average(Points)
+    numOfClusters = 1
+    numOfPoints = len(Points)
+    start_time = time.time()
+
+    while numOfClusters <= numOfPoints:
+
+
+def aglomerative_clustering(Points, n, k):
+    label = "Aglomeratívne zhlukovanie, kde stred je centroid; počet zhlukov: "
+    centroids = Points
+    numOfClusters = n
+    clusters = []
+    for point in Points:
+        clusters.append([point])
+    start_time = time.time()
+    #vytvorím si maticu
+    matrix = np.zeros(numOfClusters*numOfClusters).reshape(numOfClusters,numOfClusters)
+
+    for A in range(numOfClusters-1):
+        for B in range(A+1, numOfClusters):
+            if A == B:
+                continue
+            distance = calculate_distance(centroids[A], centroids[B])
+            matrix[A][B] = distance
+            matrix[B][A] = distance
+
+    end_time = time.time()
+    print("trvalo to " + str(end_time-start_time) + " sekúnd")
+    start_time = time.time()
+
+    show_points_on_graph(clusters, centroids, label + str(numOfClusters), "3_0")
+
+    end_time = time.time()
+    print("trvalo to " + str(end_time-start_time) + " sekúnd")
+
+    counter = 0
+    while numOfClusters > k:
+        counter += 1
+
+        print(counter)
+
+        #najdeme najbližšie 2 zhluky
+        min_A = 0
+        min_B = 1
+        min_distance = matrix[min_A][min_B]
+        for A in range(numOfClusters - 1):
+            for B in range(A + 1, numOfClusters):
+                if matrix[A][B] < min_distance:
+                    min_distance = matrix[A][B]
+                    min_A = A
+                    min_B = B
+
+        numOfClusters -= 1
+
+        #pridelím clusterB ku clustruA a odstraním clusterB
+        deleted_cluster = clusters.pop(min_B)
+        centroids.pop(min_B)
+        for point in deleted_cluster:
+            clusters[min_A].append(point)
+
+
+        #odstraním stĺpec a riadok B z matice
+        matrix = np.delete(matrix, min_B, 0)
+        matrix = np.delete(matrix, min_B, 1)
+
+        #zistím centroid pre A
+        centroids[min_A] = calculate_average(clusters[min_A])
+
+        #upravím maticu v stĺpci a riadku A
+        A = min_A
+        for B in range(numOfClusters):
+            if A == B:
+                continue
+            distance = calculate_distance(centroids[A], centroids[B])
+            matrix[A][B] = distance
+            matrix[B][A] = distance
+
+        show_points_on_graph(clusters, centroids, label + str(numOfClusters), "3_" + str(counter))
+    #show_points_on_graph(clusters, centroids, label + str(numOfClusters), "3_" + str(counter))
+    create_GIF(counter, 3)
+    print("hotofko")
+
+
+
+
+def kMeans_medoid(Points, k, centerPoints):
+    label = "k-means, kde stred je medoid; "
+    medoids = centerPoints
+    clusters = points_to_clusters(Points, medoids)
+    show_points_on_graph(clusters, medoids, label + "0. iterácia", "2_0")
+
+    start_time = time.time()
+    i = 0
+    while True:
+        i += 1
+        new_medoids = []
+        for j in range(k):
+            if len(clusters[j]) == 0:
+                new_medoids.append(medoids[j])
+                continue
+
+            new_medoid = find_medoid(clusters[j])
+            new_medoids.append(new_medoid)
+
+        ##vypočítam si najväčší posun centroidov
+        biggest = 0
+        for j in range(k):
+            distance = calculate_distance(medoids[j], new_medoids[j])
+            if distance > biggest:
+                biggest = distance
+
+        medoids = new_medoids
+        clusters = points_to_clusters(Points, medoids)
+        show_points_on_graph(clusters, medoids, label + str(i) + ". iterácia", "2_" + str(i))
+
+        if biggest < 2:
+            break
+
+    end_time = time.time()
+    print("Čas vykonávania k-means - medoid: " + str(round(end_time-start_time, 4)) + "s")
+
+    create_GIF(i, 2)
+
+def kMeans_centroid(Points, k, centerPoints):
     label = "k-means, kde stred je centroid; "
-
-    centroids = []
-
-    for i in range(k):
-        centroids.append({"x" : random.randrange(-5000, 5001), "y" : random.randrange(-5000, 5001)})
-
+    centroids = centerPoints
     clusters = points_to_clusters(Points, centroids)
-
     show_points_on_graph(clusters, centroids, label + "0. iterácia", "1_0")
 
+    start_time = time.time()
     i = 0
     while True:
         i += 1
@@ -98,6 +243,10 @@ def kMeans_centroid(Points, k):
         if biggest < 2:
             break
 
+
+    end_time = time.time()
+    print("Čas vykonávania k-means - centroid: " + str(round(end_time-start_time, 4)) + "s")
+
     create_GIF(i, 1)
 
 
@@ -108,21 +257,26 @@ def show_points_on_graph(clusters, clustersCentres, label, saveLabel):
     plt.title(label)
     #plt.plot(points[0]["x"], points[0]["y"])
 
-    for points in clusters:
+    for i, points in enumerate(clusters):
+        counter = 0
         xPoints = []
         yPoints = []
         for point in points:
+            counter += 1
             xPoints.append(point["x"])
             yPoints.append(point["y"])
-        plt.scatter(xPoints, yPoints)
+        if counter == 1:
+            plt.scatter(xPoints, yPoints, color="k")
+        else:
+            plt.scatter(xPoints, yPoints)
 
-    for center in clustersCentres:
-        plt.scatter(center["x"], center["y"], marker="x", color="k")
-
+        if counter > 5 and clustersCentres != []:
+            plt.scatter(clustersCentres[i]["x"], clustersCentres[i]["y"], marker="x", color="k")
 
     plt.savefig("grafy/frame" + saveLabel + ".png")
-    plt.figure()
-    #plt.show()
+    #plt.figure()
+    #plt.clf()
+    plt.show()
 
 def generate_dots(numOnStart, numOfAll):
     Points = []
@@ -165,7 +319,16 @@ def generate_dots(numOnStart, numOfAll):
     return Points
 
 
+def create_centres(k):
+    points = []
+    for i in range(k):
+        points.append({"x" : random.randrange(-5000, 5001), "y" : random.randrange(-5000, 5001)})
+    return points
 
-pointy = generate_dots(10, 20000)
-kMeans_centroid(pointy, 10)
+numberOfClusters = 10
+dots = generate_dots(numberOfClusters, 500)
+centerPoints = create_centres(numberOfClusters)
+kMeans_centroid(dots, numberOfClusters, centerPoints)
+kMeans_medoid(dots, numberOfClusters, centerPoints)
+#aglomerative_clustering(dots, len(dots), numberOfClusters)
 
