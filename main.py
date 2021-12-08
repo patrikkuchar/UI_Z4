@@ -5,8 +5,14 @@ import numpy as np
 from matplotlib import pyplot as plt
 from PIL import Image as img
 
+class Node:
+    def __init__(self, parent, left_node, right_node):
+        self.parent = parent
+        self.left_node = left_node
+        self.right_node = right_node
+
 def create_GIF(numOfIterations, n):
-    return
+    #return
 
     path = "grafy/frame"
     frames = [img.open(path + "0.png")]
@@ -194,24 +200,27 @@ def aglomerative_clustering(Points, n, k):
     centroids = Points
     numOfClusters = n
     clusters = []
+
+
+
     for point in Points:
         clusters.append([point])
 
     start_time = time.time()
     #vytvorím si maticu
-    matrix = np.zeros(numOfClusters*numOfClusters).reshape(numOfClusters,numOfClusters)
+    matrix = np.zeros(numOfClusters*numOfClusters, dtype=int).reshape(numOfClusters,numOfClusters)
 
     #print("tu som")
 
     for A in range(numOfClusters-1):
         for B in range(A, numOfClusters):
             if A == B:
-                matrix[A][A] = 10000
+                matrix[A][A] = 15000
                 continue
-            distance = calculate_distance(centroids[A], centroids[B])
+            distance = int(calculate_distance(centroids[A], centroids[B]))
             matrix[A][B] = distance
             matrix[B][A] = distance
-    matrix[-1][-1] = 10000
+    matrix[-1][-1] = 15000
 
     end_time = time.time()
     print("Vytvorenie matice: " + calculate_time(round(end_time - start_time, 4)))
@@ -241,15 +250,35 @@ def aglomerative_clustering(Points, n, k):
                     #min_A = A
                     #min_B = B
 
-        result = np.where(matrix == np.amin(matrix))
-        min_A = result[0][0]
-        min_B = result[0][1]
+
+        result = np.where(matrix == np.min(matrix))
+        if len(result[0]) == 2:
+            min_A = result[0][0]
+            min_B = result[0][1]
+        else:
+            lowest = 15000
+            for A in result[0]:
+                for B in result[0]:
+                    if matrix[A][B] < lowest:
+                        lowest = matrix[A][B]
+                        min_A = A
+                        min_B = B
+
+        #min_A = result[0][0]
+        #min_B = result[0][1]
 
         end_time = time.time()
         print("Čas nájdenia najmenšieho: " + calculate_time(round(end_time - start_time, 4)))
         start_time = time.time()
 
         numOfClusters -= 1
+
+        if min_A == min_B:
+            print("huh")
+
+        ##aby sa odstranil väčší (nenastane posun)
+        if min_B < min_A:
+            min_A, min_B = min_B, min_A
 
         #pridelím clusterB ku clustruA a odstraním clusterB
         deleted_cluster = clusters.pop(min_B)
@@ -288,8 +317,8 @@ def aglomerative_clustering(Points, n, k):
         end_time = time.time()
         print("Čas prepísania: " + calculate_time(round(end_time - start_time, 4)))
 
-        #show_points_on_graph(clusters, centroids, label + str(numOfClusters), "3_" + str(counter))
-    #show_points_on_graph(clusters, centroids, label + str(numOfClusters), "3_" + str(counter))
+        show_points_on_graph(clusters, centroids, label + str(numOfClusters), "3_" + str(counter))
+    show_points_on_graph(clusters, centroids, label + str(numOfClusters), "3_" + str(counter))
     end_time = time.time()
     print("Čas vykonávania Aglomeratívneho zhlukovania: " + calculate_time(round(end_time-start_time, 4)))
 
@@ -383,7 +412,7 @@ def kMeans_centroid(Points, k, centerPoints):
 
 
 def show_points_on_graph(clusters, clustersCentres, label, saveLabel):
-    return
+    #return
 
     plt.title(label)
     #plt.plot(points[0]["x"], points[0]["y"])
@@ -483,8 +512,8 @@ def create_centres(k):
         points.append({"x" : random.randrange(-5000, 5001), "y" : random.randrange(-5000, 5001)})
     return points
 
-numberOfClusters = 20
-dots = generate_dots(numberOfClusters, 20000)
+numberOfClusters = 5
+dots = generate_dots(numberOfClusters, 200)
 centerPoints = create_centres(numberOfClusters)
 
 #kMeans_centroid(dots, numberOfClusters, centerPoints)
