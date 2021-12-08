@@ -105,6 +105,29 @@ def calculate_avg_len(cluster, centroid):
 def calculate_distance(point_A, point_B):
     return math.sqrt((point_A["x"] - point_B["x"])**2 + (point_A["y"] - point_B["y"])**2)
 
+def calculate_time(seconds):
+    milis = int(seconds * 1000 % 1000)
+    seconds = int(seconds)
+
+    minutes = seconds // 60
+    seconds %= 60
+
+    hours = minutes // 60
+    minutes %= 60
+
+    output = ""
+    if hours != 0:
+        output += str(hours) + "h "
+    if minutes != 0:
+        output += str(minutes) + "m "
+    if seconds != 0:
+        output += str(seconds) + "s "
+    if milis != 0:
+        output += str(milis) + "ms "
+
+    return output
+
+
 def divisive_clustering(Points, n, k):
     label = "Divízne zhlukovanie, kde stred je centroid; počet zhlukov: "
     clusters = [Points]
@@ -160,7 +183,7 @@ def divisive_clustering(Points, n, k):
                 break
 
     end_time = time.time()
-    print("Čas vykonávania Divízneho zhlukovania: " + str(round(end_time - start_time, 4)) + "s")
+    print("Čas vykonávania Divízneho zhlukovania: " + calculate_time(round(end_time - start_time, 4)))
 
     create_GIF(counter, 4)
 
@@ -173,18 +196,26 @@ def aglomerative_clustering(Points, n, k):
     clusters = []
     for point in Points:
         clusters.append([point])
+
     start_time = time.time()
     #vytvorím si maticu
     matrix = np.zeros(numOfClusters*numOfClusters).reshape(numOfClusters,numOfClusters)
 
+    #print("tu som")
+
     for A in range(numOfClusters-1):
-        for B in range(A+1, numOfClusters):
+        for B in range(A, numOfClusters):
             if A == B:
+                matrix[A][A] = 10000
                 continue
             distance = calculate_distance(centroids[A], centroids[B])
             matrix[A][B] = distance
             matrix[B][A] = distance
+    matrix[-1][-1] = 10000
 
+    end_time = time.time()
+    print("Vytvorenie matice: " + calculate_time(round(end_time - start_time, 4)))
+    start_time = time.time()
 
 
     show_points_on_graph(clusters, centroids, label + str(numOfClusters), "3_0")
@@ -195,18 +226,28 @@ def aglomerative_clustering(Points, n, k):
     while numOfClusters > k:
         counter += 1
 
-        print(counter)
+        start_time = time.time()
+
+        #print(counter)
 
         #najdeme najbližšie 2 zhluky
-        min_A = 0
-        min_B = 1
-        min_distance = matrix[min_A][min_B]
-        for A in range(numOfClusters - 1):
-            for B in range(A + 1, numOfClusters):
-                if matrix[A][B] < min_distance:
-                    min_distance = matrix[A][B]
-                    min_A = A
-                    min_B = B
+        #min_A = 0
+        #min_B = 1
+        #min_distance = matrix[min_A][min_B]
+        #for A in range(numOfClusters - 1):
+            #for B in range(A + 1, numOfClusters):
+                #if matrix[A][B] < min_distance:
+                    #min_distance = matrix[A][B]
+                    #min_A = A
+                    #min_B = B
+
+        result = np.where(matrix == np.amin(matrix))
+        min_A = result[0][0]
+        min_B = result[0][1]
+
+        end_time = time.time()
+        print("Čas nájdenia najmenšieho: " + calculate_time(round(end_time - start_time, 4)))
+        start_time = time.time()
 
         numOfClusters -= 1
 
@@ -216,13 +257,24 @@ def aglomerative_clustering(Points, n, k):
         for point in deleted_cluster:
             clusters[min_A].append(point)
 
+        end_time = time.time()
+        print("Čas pridelenie a odstranenie klastra: " + calculate_time(round(end_time - start_time, 4)))
+        start_time = time.time()
 
         #odstraním stĺpec a riadok B z matice
         matrix = np.delete(matrix, min_B, 0)
         matrix = np.delete(matrix, min_B, 1)
 
+        end_time = time.time()
+        print("Čas odstranenie - stlpce v matici: " + calculate_time(round(end_time - start_time, 4)))
+        start_time = time.time()
+
         #zistím centroid pre A
         centroids[min_A] = find_centroid(clusters[min_A])
+
+        end_time = time.time()
+        print("Čas odstránenie - centroid: " + calculate_time(round(end_time - start_time, 4)))
+        start_time = time.time()
 
         #upravím maticu v stĺpci a riadku A
         A = min_A
@@ -233,10 +285,13 @@ def aglomerative_clustering(Points, n, k):
             matrix[A][B] = distance
             matrix[B][A] = distance
 
-        show_points_on_graph(clusters, centroids, label + str(numOfClusters), "3_" + str(counter))
+        end_time = time.time()
+        print("Čas prepísania: " + calculate_time(round(end_time - start_time, 4)))
+
+        #show_points_on_graph(clusters, centroids, label + str(numOfClusters), "3_" + str(counter))
     #show_points_on_graph(clusters, centroids, label + str(numOfClusters), "3_" + str(counter))
     end_time = time.time()
-    print("Čas vykonávania Aglomeratívneho zhlukovania: " + str(round(end_time-start_time, 4)) + "s")
+    print("Čas vykonávania Aglomeratívneho zhlukovania: " + calculate_time(round(end_time-start_time, 4)))
 
     create_GIF(counter, 3)
 
@@ -277,7 +332,7 @@ def kMeans_medoid(Points, k, centerPoints):
             break
 
     end_time = time.time()
-    print("Čas vykonávania k-means - medoid: " + str(round(end_time-start_time, 4)) + "s")
+    print("Čas vykonávania k-means - medoid: " + calculate_time(round(end_time-start_time, 4)))
 
     create_GIF(i, 2)
 
@@ -287,9 +342,11 @@ def kMeans_centroid(Points, k, centerPoints):
     clusters = points_to_clusters(Points, centroids)
     show_points_on_graph(clusters, centroids, label + "0. iterácia", "1_0")
 
+
     start_time = time.time()
     i = 0
     while True:
+
         i += 1
         new_centroids = []
         for j in range(k):
@@ -317,7 +374,7 @@ def kMeans_centroid(Points, k, centerPoints):
 
 
     end_time = time.time()
-    print("Čas vykonávania k-means - centroid: " + str(round(end_time-start_time, 4)) + "s")
+    print("Čas vykonávania k-means - centroid: " + calculate_time(round(end_time-start_time, 4)))
 
     create_GIF(i, 1)
 
@@ -427,8 +484,9 @@ def create_centres(k):
     return points
 
 numberOfClusters = 20
-dots = generate_dots(numberOfClusters, 500)
+dots = generate_dots(numberOfClusters, 20000)
 centerPoints = create_centres(numberOfClusters)
+
 #kMeans_centroid(dots, numberOfClusters, centerPoints)
 #kMeans_medoid(dots, numberOfClusters, centerPoints)
 aglomerative_clustering(dots, len(dots), numberOfClusters)
