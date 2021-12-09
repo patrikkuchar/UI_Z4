@@ -5,11 +5,18 @@ import numpy as np
 from matplotlib import pyplot as plt
 from PIL import Image as img
 
+import drawSvg as draw
+
 class Node:
-    def __init__(self, parent, left_node, right_node):
+    def __init__(self, parent, left_node, right_node, value, depth, seq):
         self.parent = parent
         self.left_node = left_node
         self.right_node = right_node
+        self.value = value
+        self.depth = depth
+        self.seq = seq
+
+
 
 def create_GIF(numOfIterations, n):
     #return
@@ -30,6 +37,78 @@ def create_GIF(numOfIterations, n):
                    append_images=frames[1:],
                    save_all=True,
                    duration=dur, loop=10)
+
+def draw_dendogram(root_node):
+
+
+    move_to_node(root_node, -1)
+
+    r = draw.Rectangle(-80, 0, 40, 50, fill='#1248ff')
+    d.append(r)
+    d.setPixelScale(2)
+    d.saveSvg('example.svg')
+    print("aha")
+
+d = draw.Drawing(200600, 40200, displayInline=False)
+g_position = [10,40190]
+global_x_for_leafs = 10
+
+def move_to_node(node, color):
+    global g_position, global_x_for_leafs
+    colors = ["#0000ff","#556b2f","#ffff00","#191970","#ff4500","#00bfff","#ff1493","#00ff7f","#000000"]
+
+    #if not leaf
+    if node.value == None:
+
+        if color == -1:
+            new_color_l = 50
+            new_color_r = 150
+            color = 8
+        elif color > 40:
+            new_color_l = color // 5
+            new_color_r = color // 5 + 10
+            color = 8
+        elif color >= 10:
+            new_color_l = color // 5 - 2
+            new_color_r = color // 5 - 1
+            color = 8
+        else:
+            new_color_l = color
+            new_color_r = color
+
+        move_to_node(node.left_node, new_color_l)
+        x1 = g_position[0]
+        #horizontalna čiara
+        #if (node.left_node.value != None):
+        #d.append(draw.Line(g_position[0], g_position[1], g_position[0] + (seq*10), g_position[1], stroke='red'))
+
+        move_to_node(node.right_node, new_color_r)
+        #if (node.left_node.value != None):
+        x2 = g_position[0]
+
+        d.append(draw.Line(x1, g_position[1], x2, g_position[1], stroke=colors[color]))
+        #d.append(draw.Line(g_position[0], g_position[1], g_position[0] - (seq*10), g_position[1], stroke='red'))
+
+        g_position[0] -= abs(x1-x2)/2
+        if node.parent != None:
+            d.append(draw.Line(g_position[0], g_position[1], g_position[0], 40190 - node.parent.depth * 2 , stroke=colors[color]))
+            g_position[1] = 40190 - node.parent.depth*2
+        else:
+            d.append(draw.Line(g_position[0], g_position[1], g_position[0], 0 , stroke="black"))
+
+    #vertikalna čiara
+    else: #leaf
+        g_position[1] = 40190
+        g_position[0] = global_x_for_leafs
+        global_x_for_leafs += 10
+
+        d.append(draw.Line(g_position[0], g_position[1], g_position[0], g_position[1] - node.parent.depth*2, stroke=colors[color]))
+
+        g_position[1] -= node.parent.depth*2
+
+
+
+
 
 
 def find_medoid(cluster):
@@ -200,11 +279,10 @@ def aglomerative_clustering(Points, n, k):
     centroids = Points
     numOfClusters = n
     clusters = []
-
-
-
-    for point in Points:
+    nodes_array = []
+    for i, point in enumerate(Points):
         clusters.append([point])
+        nodes_array.append(Node(None, None, None, i, 0, 0))
 
     start_time = time.time()
     #vytvorím si maticu
@@ -232,7 +310,7 @@ def aglomerative_clustering(Points, n, k):
 
 
     counter = 0
-    while numOfClusters > k:
+    while numOfClusters > 1:#k:
         counter += 1
 
         start_time = time.time()
@@ -267,6 +345,7 @@ def aglomerative_clustering(Points, n, k):
         #min_A = result[0][0]
         #min_B = result[0][1]
 
+
         end_time = time.time()
         print("Čas nájdenia najmenšieho: " + calculate_time(round(end_time - start_time, 4)))
         start_time = time.time()
@@ -279,6 +358,18 @@ def aglomerative_clustering(Points, n, k):
         ##aby sa odstranil väčší (nenastane posun)
         if min_B < min_A:
             min_A, min_B = min_B, min_A
+
+        ##nodes pre vykreslenie
+        seq = nodes_array[min_A].seq
+        if nodes_array[min_B].seq > seq:
+            seq = nodes_array[min_B].seq
+        parent_node = Node(None, nodes_array[min_A], nodes_array[min_B],
+                           None, counter, seq+1)
+        nodes_array[min_A].parent = parent_node
+        nodes_array[min_B].parent = parent_node
+
+        nodes_array.pop(min_B)
+        nodes_array[min_A] = parent_node
 
         #pridelím clusterB ku clustruA a odstraním clusterB
         deleted_cluster = clusters.pop(min_B)
@@ -322,7 +413,9 @@ def aglomerative_clustering(Points, n, k):
     end_time = time.time()
     print("Čas vykonávania Aglomeratívneho zhlukovania: " + calculate_time(round(end_time-start_time, 4)))
 
-    create_GIF(counter, 3)
+    draw_dendogram(nodes_array[0])
+
+    #create_GIF(counter, 3)
 
 
 
@@ -460,10 +553,15 @@ def show_points_on_graph(clusters, clustersCentres, label, saveLabel):
         plt.scatter(x_centres, y_centres, marker="x", color="k")
 
 
+    #X, Y = np.meshgrid(x, y)
+
+
+
     plt.savefig("grafy/frame" + saveLabel + ".png")
-    plt.figure()
-    plt.clf()
-    #plt.show()
+    #plt.figure()
+    #plt.clf()
+    plt.show()
+    print("ahoj")
 
 def generate_dots(numOnStart, numOfAll):
     Points = []
@@ -506,18 +604,25 @@ def generate_dots(numOnStart, numOfAll):
     return Points
 
 
-def create_centres(k):
+def create_centres(all_points, k):
     points = []
+    l = len(all_points)
     for i in range(k):
-        points.append({"x" : random.randrange(-5000, 5001), "y" : random.randrange(-5000, 5001)})
+        while True:
+            point = all_points[random.randrange(l)]
+            if point not in points:
+                points.append(point)
+                break
+    #for i in range(k):
+        #points.append({"x" : random.randrange(-5000, 5001), "y" : random.randrange(-5000, 5001)})
     return points
 
-numberOfClusters = 5
-dots = generate_dots(numberOfClusters, 200)
-centerPoints = create_centres(numberOfClusters)
+numberOfClusters = 10
+dots = generate_dots(numberOfClusters, 500)
+centerPoints = create_centres(dots, numberOfClusters)
 
-#kMeans_centroid(dots, numberOfClusters, centerPoints)
-#kMeans_medoid(dots, numberOfClusters, centerPoints)
-aglomerative_clustering(dots, len(dots), numberOfClusters)
+kMeans_centroid(dots, numberOfClusters, centerPoints)
+kMeans_medoid(dots, numberOfClusters, centerPoints)
+#aglomerative_clustering(dots, len(dots), numberOfClusters)
 #divisive_clustering(dots, len(dots), numberOfClusters)
 
