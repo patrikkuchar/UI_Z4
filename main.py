@@ -4,7 +4,7 @@ import time
 import numpy as np
 from matplotlib import pyplot as plt
 from PIL import Image as img
-
+import copy
 import drawSvg as draw
 
 class Node:
@@ -16,10 +16,9 @@ class Node:
         self.depth = depth
         self.seq = seq
 
-
-
 def create_GIF(numOfIterations, n):
-    #return
+    if not showGraphs:
+        return
 
     path = "grafy/frame"
     frames = []
@@ -28,15 +27,10 @@ def create_GIF(numOfIterations, n):
     for i in range(numOfIterations+1):
         frames.append(img.open(path + str(i) + ".png"))
 
-    dur = 750
-    if n == 3:
-        dur = 300
-
-
     frames[0].save('gifko_' + str(n) + '.gif', format='GIF',
                    append_images=frames[1:],
                    save_all=True,
-                   duration=dur, loop=10)
+                   duration=700, loop=10)
 
 def draw_dendogram(root_node):
     move_to_node(root_node, -1)
@@ -182,7 +176,7 @@ def calculate_avg_len(cluster, centroid):
 
 
 def calculate_distance(point_A, point_B):
-    return math.sqrt((point_A["x"] - point_B["x"])**2 + (point_A["y"] - point_B["y"])**2)
+    return math.sqrt(math.pow(point_A["x"] - point_B["x"],2) + math.pow(point_A["y"] - point_B["y"],2))
 
 def calculate_time(seconds):
     milis = int(seconds * 1000 % 1000)
@@ -212,7 +206,6 @@ def divisive_clustering(Points, n, k):
     clusters = [Points]
     centroids = [find_centroid(Points)]
     numOfClusters = 1
-    numOfPoints = n
     start_time = time.time()
 
 
@@ -263,6 +256,8 @@ def divisive_clustering(Points, n, k):
 
     end_time = time.time()
     print("Čas vykonávania Divízneho zhlukovania: " + calculate_time(round(end_time - start_time, 4)))
+
+    global_file.write("\ndivisive: " + str(int(end_time-start_time)))
 
     create_GIF(counter, 4)
 
@@ -357,7 +352,9 @@ def aglomerative_clustering(Points, n, k):
     end_time = time.time()
     print("Čas vykonávania Aglomeratívneho zhlukovania: " + calculate_time(round(end_time-start_time, 4)))
 
-    draw_dendogram(nodes_array[0])
+    global_file.write("\naglomerative: " + str(int(end_time-start_time)))
+
+    #draw_dendogram(nodes_array[0])
 
     #create_GIF(counter, 3)
 
@@ -399,6 +396,8 @@ def kMeans_medoid(Points, k, centerPoints):
 
     end_time = time.time()
     print("Čas vykonávania k-means - medoid: " + calculate_time(round(end_time-start_time, 4)))
+
+    global_file.write("\nk-means-m: " + str(int(end_time-start_time)))
 
     create_GIF(i, 2)
 
@@ -442,6 +441,8 @@ def kMeans_centroid(Points, k, centerPoints):
     end_time = time.time()
     print("Čas vykonávania k-means - centroid: " + calculate_time(round(end_time-start_time, 4)))
 
+    global_file.write("\nk-means-c: " + str(int(end_time-start_time)))
+
     create_GIF(i, 1)
 
 
@@ -449,7 +450,8 @@ def kMeans_centroid(Points, k, centerPoints):
 
 
 def show_points_on_graph(clusters, clustersCentres, label, saveLabel):
-    #return
+    if not showGraphs:
+        return
 
     plt.title(label)
     #plt.plot(points[0]["x"], points[0]["y"])
@@ -477,8 +479,6 @@ def show_points_on_graph(clusters, clustersCentres, label, saveLabel):
             plt.scatter(xPoints,yPoints, marker="s", color=colors[i])
 
 
-    x_os = [[]]
-    y_os = [[]]
 
     x_centres = []
     y_centres = []
@@ -500,6 +500,20 @@ def show_points_on_graph(clusters, clustersCentres, label, saveLabel):
         plt.scatter(x_centres,y_centres, marker="x", color="#ffffff")
 
 
+
+    if centres:
+        biggest_cluster = 0
+        for i, cluster in enumerate(clusters):
+            sum_distance = 0
+            counter = 0
+            for point in cluster:
+                counter += 1
+                sum_distance += calculate_distance(point, clustersCentres[i])
+            avg = int(sum_distance) // counter
+            if avg > biggest_cluster:
+                biggest_cluster = avg
+
+        plt.xlabel("Najväčšia priemerna vzdialenosť od centra zhluku: " + str(biggest_cluster))
 
 
     #X, Y = np.meshgrid(x, y)
@@ -569,12 +583,20 @@ def create_centres(all_points, k):
         #points.append({"x" : random.randrange(-5000, 5001), "y" : random.randrange(-5000, 5001)})
     return points
 
-numberOfClusters = 20
-dots = generate_dots(numberOfClusters, 20000)
-centerPoints = create_centres(dots, numberOfClusters)
+showGraphs = False
 
-kMeans_centroid(dots, numberOfClusters, centerPoints)
-kMeans_medoid(dots, numberOfClusters, centerPoints)
-aglomerative_clustering(dots, len(dots), numberOfClusters)
-divisive_clustering(dots, len(dots), numberOfClusters)
+global_file = open("vysledky.txt","w")
 
+for i in range(3):
+    numberOfClusters = 20
+    dots = generate_dots(numberOfClusters, 20000)
+    centerPoints = create_centres(dots, numberOfClusters)
+
+    print("\n" + str(i+1) + ". testovanie\n\n")
+
+    kMeans_centroid(copy.copy(dots), numberOfClusters, centerPoints)
+    kMeans_medoid(copy.copy(dots), numberOfClusters, centerPoints)
+    aglomerative_clustering(copy.copy(dots), len(dots), numberOfClusters)
+    divisive_clustering(copy.copy(dots), len(dots), numberOfClusters)
+
+global_file.close()
